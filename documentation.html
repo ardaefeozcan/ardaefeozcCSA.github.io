@@ -1,159 +1,49 @@
 <!doctype html>
 <html lang="tr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Not Kutucukları — Dikey</title>
+  <meta charset="utf-8">
+  <title>Not Kutucukları</title>
   <style>
-    :root{ --bg:#f4f6f8; --card:#fff; --accent:#4f46e5; --muted:#6b7280 }
-    *{box-sizing:border-box}
-    body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial; margin:0; background:var(--bg); color:#111}
-    .app{max-width:900px; margin:28px auto; padding:20px}
-    header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
-    h1{font-size:1.1rem;margin:0}
-    .controls{display:flex;gap:8px}
-    button{background:var(--accent);color:#fff;border:0;padding:8px 12px;border-radius:8px;cursor:pointer}
-    button.secondary{background:#fff;color:var(--accent);border:1px solid rgba(79,70,229,.12)}
-    .help{color:var(--muted);font-size:.9rem}
-
-    /* dikey liste */
-    .list{display:flex;flex-direction:column;gap:14px}
-
-    /* not kartı: kare görünümü için aspect-ratio kullanıyoruz */
-    .note{
-      background:var(--card);
-      border-radius:12px;
-      box-shadow:0 6px 18px rgba(16,24,40,0.06);
-      padding:10px;
-      position:relative;
-      min-height:180px;
-      aspect-ratio: 1 / 1; /* kare */
-      display:flex;
-      flex-direction:column;
-      overflow:hidden;
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      padding: 20px;
     }
-    .note .meta{display:flex;justify-content:space-between;align-items:center;gap:8px}
-    .note .meta .time{font-size:.8rem;color:var(--muted)}
-    .note textarea{
-      border:0;outline:none;resize:none;width:100%;height:100%;margin-top:8px;font-size:1rem;background:transparent;line-height:1.4;color:inherit
+    .note {
+      width: 200px;              /* kutunun genişliği */
+      height: 200px;             /* kutunun yüksekliği (kare) */
+      background: #fff;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      margin-bottom: 20px;       /* alt alta boşluk */
+      padding: 10px;
+      box-shadow: 2px 2px 6px rgba(0,0,0,0.1);
     }
-    .note .actions{position:absolute;right:8px;top:8px;display:flex;gap:6px}
-    .icon-btn{background:transparent;border:0;padding:6px;border-radius:6px;cursor:pointer}
-    .icon-btn:hover{background:rgba(0,0,0,0.04)}
-
-    /* responsive: küçük ekranlarda daha küçük kart */
-    @media (max-width:520px){
-      .app{padding:12px}
-      .note{min-height:140px}
+    .note textarea {
+      width: 100%;
+      height: 100%;
+      border: none;
+      resize: none;
+      outline: none;
+      font-size: 14px;
+      background: transparent;
     }
-
-    .empty{padding:18px;border-radius:10px;background:linear-gradient(180deg,#fff, #fbfdff);text-align:center;color:var(--muted)}
   </style>
 </head>
 <body>
-  <div class="app">
-    <header>
-      <div>
-        <h1>Not Kutucukları (dikey)</h1>
-        <div class="help">Kutucuk ekle, notunu yaz — tarayıcıya kaydedilir.</div>
-      </div>
-      <div class="controls">
-        <button id="addBtn">+ Yeni Kutucuk</button>
-        <button id="clearBtn" class="secondary">Tümünü Sil</button>
-      </div>
-    </header>
+  <h1>Not Kutucukları</h1>
 
-    <main>
-      <div id="list" class="list"></div>
-      <div id="empty" class="empty" style="display:none;margin-top:12px">Henüz not yok — "Yeni Kutucuk" butonuna tıkla.</div>
-    </main>
+  <div class="note">
+    <textarea>Buraya ilk notunu yaz...</textarea>
   </div>
 
-  <template id="noteTpl">
-    <div class="note">
-      <div class="meta">
-        <div class="title">Not</div>
-        <div class="time" aria-hidden="true"></div>
-      </div>
-      <textarea placeholder="Notunu buraya yaz..." aria-label="Not alanı"></textarea>
-      <div class="actions">
-        <button class="icon-btn" data-action="delete" title="Sil">🗑️</button>
-        <button class="icon-btn" data-action="duplicate" title="Kopyala">📄</button>
-      </div>
-    </div>
-  </template>
+  <div class="note">
+    <textarea>Buraya ikinci notunu yaz...</textarea>
+  </div>
 
-  <script>
-    const KEY = 'not-kutucuklari-v1';
-    const listEl = document.getElementById('list');
-    const emptyEl = document.getElementById('empty');
-    const addBtn = document.getElementById('addBtn');
-    const clearBtn = document.getElementById('clearBtn');
-    const tpl = document.getElementById('noteTpl');
+  <div class="note">
+    <textarea>Buraya üçüncü notunu yaz...</textarea>
+  </div>
 
-    // yükle
-    let notes = load();
-    render();
-
-    addBtn.addEventListener('click', ()=>{
-      const n = {id: Date.now(), text: '', created: new Date().toISOString()};
-      notes.unshift(n); // en üste ekle
-      save(); render();
-      // otomatik focus
-      requestAnimationFrame(()=>{
-        const first = listEl.querySelector('.note textarea');
-        if(first) first.focus();
-      })
-    });
-
-    clearBtn.addEventListener('click', ()=>{
-      if(!confirm('Tüm notlar silinsin mi?')) return;
-      notes = []; save(); render();
-    })
-
-    function render(){
-      listEl.innerHTML = '';
-      if(notes.length===0){ emptyEl.style.display='block'; return }
-      emptyEl.style.display='none';
-      for(const n of notes){
-        const node = tpl.content.cloneNode(true);
-        const root = node.querySelector('.note');
-        const ta = node.querySelector('textarea');
-        const timeEl = node.querySelector('.time');
-        ta.value = n.text;
-        timeEl.textContent = formatDate(n.created);
-
-        // değişiklikleri kaydet
-        ta.addEventListener('input', (e)=>{
-          const idx = notes.findIndex(x=>x.id===n.id);
-          if(idx>-1){ notes[idx].text = e.target.value; save(); }
-        });
-
-        // butonlar
-        node.querySelector('[data-action="delete"]').addEventListener('click', ()=>{
-          if(!confirm('Bu notu silmek istediğine emin misin?')) return;
-          notes = notes.filter(x=>x.id!==n.id); save(); render();
-        });
-        node.querySelector('[data-action="duplicate"]').addEventListener('click', ()=>{
-          const copy = {id: Date.now()+Math.floor(Math.random()*1000), text: n.text, created: new Date().toISOString()};
-          notes.unshift(copy); save(); render();
-        });
-
-        listEl.appendChild(node);
-      }
-    }
-
-    function save(){
-      try{ localStorage.setItem(KEY, JSON.stringify(notes)); }
-      catch(e){ console.warn('LocalStorage hatası', e) }
-    }
-    function load(){
-      try{ const raw = localStorage.getItem(KEY); return raw? JSON.parse(raw):[] }catch(e){return[]}
-    }
-    function formatDate(iso){
-      try{ const d = new Date(iso); return d.toLocaleString('tr-TR',{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) }
-      catch(e){return ''}
-    }
-  </script>
 </body>
 </html>
